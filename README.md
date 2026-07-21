@@ -153,6 +153,7 @@ The MSBase-based machine learning study classified DMTs as: low-efficacy (interf
 12. Samjoo IA et al. *J Comp Eff Res* 2023;127. doi:10.57264/cer-2023-0016
 
 References:
+
 [1.1] The natural history of multiple sclerosis, a geographically based study 10: relapses and long-term disability. Antonio Scalfari, Anneke Neuhaus, Alexandra Degenhardt, George P. Rice, Paolo A. Muraro, Martin Daumer, George C. Ebers. Brain (2010). https://doi.org/10.1093/brain/awq118
     Context: "This study included 806 relapsing-onset multiple sclerosis patients followed from 1972-2000 with a mean disease duration of 24.4 years (median 23 years). The cohort was predominantly female with 554 females (68.8%) and 252 males (31.2%), giving a female-to-male sex ratio of 2.19. Mean age at disease onset was 28.5 years (median 27 years). By the end of the follow-up period, 534 patients (66.2%) had converted to secondary progressive MS, while 272 (33.8%) remained relapsing-remitting. At secondary progressive onset, the median age was 39 years. The excerpt does not specify total number of clinical visits in the dataset."
     
