@@ -2,7 +2,7 @@
 A High-Fidelity Synthetic Longitudinal Multiple Sclerosis Cohort for Progression Modelling
 
 # Validation
-The framework validation is based on the following report  sumamrized in a comrpehensive parameter table and is fully traceable.
+The framework validation is based on the following report summarized in a comrpehensive parameter table and is fully traceable.
 
 ## Multiple Sclerosis Disease Progression Parameters from Natural History Cohorts and Registries
 
