@@ -1,8 +1,104 @@
-# ms-synth
-A High-Fidelity Synthetic Longitudinal Multiple Sclerosis Cohort for Progression Modelling
+# MS-synth
+## A High-Fidelity Synthetic Longitudinal Multiple Sclerosis Cohort for Progression Modelling
+
+This repository contains a reproducible generator for a high-fidelity synthetic longitudinal Multiple
+Sclerosis (MS) cohort, expressed as a continuous-time multi-state Markov model
+(CT-MSM).
+
+The synthetic cohort is designed as a substitute for restricted patient-level
+registry data when developing and testing progression-modelling
+pipelines.
+
+## Repository layout
+
+```
+ms-percolation-framework/
+├── src/                         # importable package
+│   ├── synthetic_data.py        # cohort generator (Q construction, Gillespie, visits)
+│   ├── data.py, utils.py        # I/O, schema validation, seeding, config loading
+│   ├── msm_fit.py               # CT-MSM fitting, Q estimation
+│   ├── graph_utils.py           # directed graph G(Q) from Q
+│   ├── percolation.py           # threshold sweep, GSCC, criticality, integrals
+│   ├── augmentation.py          # percolation-augmented trajectory models
+│   └── visualization.py         # publication figures
+├── scripts/
+│   ├── generate_synthetic.py    # CLI: build a cohort from a config
+│   ├── main_pipeline.py         # CLI: full generate → fit → percolation pipeline
+│   └── analyze_manuscript_stats.py  # reproduces every number in the manuscript
+├── configs/synthetic.yaml       # cohort configuration (12-state Q, effects, visits)
+├── tests/test_synthetic_data.py # 58 unit tests
+├── results/results.json         # reproduced statistics (seed 42, N=500)
+└── reports/                     # review/audit notes from the validation pass
+```
+
+## Requirements
+
+Python ≥ 3.10. Install dependencies:
+
+```bash
+pip install -r requirements.txt
+```
+
+Core generation needs only `numpy`, `scipy`, `pandas`, `pyyaml`. The statistics
+script additionally uses `lifelines` (Kaplan–Meier and Cox models).
+
+## Quick start
+
+Run everything from the repository root.
+
+```bash
+# 1. Unit tests (all 58 pass)
+python -m pytest tests/ -q
+
+# 2. Generate the headline cohort (N = 500, seed 42)
+python scripts/generate_synthetic.py \
+    --config configs/synthetic.yaml \
+    --n-patients 500 --seed 42 --validate
+
+# 3. Reproduce every statistic reported in the manuscript
+python scripts/analyze_manuscript_stats.py
+# → writes results/results.json and prints a readable summary
+```
+
+Every reported statistic is deterministic given `--seed 42`.
+
+## Reproduced headline numbers (seed 42, N = 500)
+
+| Quantity | Value |
+|---|---|
+| Total visits | 14,637 (mean 29.3/patient) |
+| Female | 66.4% · onset age 31.7 ± 8.8 yr |
+| Follow-up | median 19.2 yr (range 1.8–20.0) |
+| SPMS conversion (observed) | 27.8% · KM 5.7 / 17.8 / 27.8 / 37.0% at 5/10/15/20 yr |
+| ARR (pooled person-time) | RRMS 0.396 · SPMS 0.281 /yr |
+| DMT relapse reduction | moderate 25.0% · high 46.3% |
+| Empirical Q recovery | mean rel. error 0.31 over 26 off-diagonal pairs |
+
+See our paper (to be published) for the full validation, including
+the time-to-milestone benchmarking against London Ontario, Rennes, Lyon and BCMS.
+
+## Building the manuscript
+
+```bash
+cd manuscript
+pdflatex ms_synthetic_data_report
+bibtex   ms_synthetic_data_report
+pdflatex ms_synthetic_data_report
+pdflatex ms_synthetic_data_report
+```
+
+## Provenance note
+
+The transition intensities in `configs/synthetic.yaml` are **hand-specified and
+calibrated so that aggregate cohort outputs approximate published
+natural-history targets**. They are not fitted to any registry's patient-level
+microdata. The calibration targets and their citations are listed in the config
+header, in the `synthetic_data.py` docstring, and in the manuscript.
+
+---
 
 # Validation
-The framework validation is based on the following report summarized in a comrpehensive parameter table and is fully traceable.
+The framework validation is based on the following report summarized in a comprehensive parameter table and is fully traceable.
 
 ## Multiple Sclerosis Disease Progression Parameters from Natural History Cohorts and Registries
 
