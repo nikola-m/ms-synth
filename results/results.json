@@ -1,0 +1,323 @@
+{
+  "n_patients": 500,
+  "total_visits": 14637,
+  "visits_per_patient_mean": 29.3,
+  "visits_per_patient_median": 34.0,
+  "female_pct": 66.4,
+  "onset_age_mean": 31.7,
+  "onset_age_sd": 8.8,
+  "fu_median": 19.2,
+  "fu_mean": 15.2,
+  "fu_min": 1.8,
+  "fu_max": 20.0,
+  "interval_mean_m": 6.45,
+  "interval_median_m": 5.96,
+  "interval_sd_m": 3.76,
+  "edss_base_mean": 1.68,
+  "edss_base_sd": 1.46,
+  "edss_last_mean": 3.94,
+  "slope_mean": 0.151,
+  "slope_median": 0.115,
+  "pos_slope_pct": 73.6,
+  "fast_prog_pct": 7.6,
+  "spms_overall": {
+    "5": 5.7,
+    "10": 17.8,
+    "15": 27.8,
+    "20": 37.0,
+    "median": null
+  },
+  "spms_overall_pct": 27.8,
+  "by_class": {
+    "stable": {
+      "n": 143,
+      "pct": 28.6,
+      "spms10": 4.3,
+      "spms20": 8.4,
+      "edss_last": 2.12
+    },
+    "moderate": {
+      "n": 241,
+      "pct": 48.2,
+      "spms10": 13.1,
+      "spms20": 34.0,
+      "edss_last": 3.85
+    },
+    "aggressive": {
+      "n": 116,
+      "pct": 23.2,
+      "spms10": 42.8,
+      "spms20": 74.6,
+      "edss_last": 6.36
+    }
+  },
+  "milestones": {
+    "EDSS3": {
+      "median": 8.4,
+      "cum10": 55.0,
+      "cum20": 69.8
+    },
+    "EDSS6": {
+      "median": null,
+      "cum10": 17.8,
+      "cum20": 37.0
+    },
+    "EDSS8": {
+      "median": null,
+      "cum10": 6.0,
+      "cum20": 23.3
+    },
+    "SPMS": {
+      "median": null,
+      "cum10": 17.8,
+      "cum20": 37.0
+    }
+  },
+  "arr_rrms": 0.396,
+  "arr_spms": 0.281,
+  "dmt": {
+    "none": {
+      "n": 114,
+      "pct": 22.8,
+      "arr": 0.528,
+      "rel_reduction": null
+    },
+    "moderate_dmt": {
+      "n": 180,
+      "pct": 36.0,
+      "arr": 0.396,
+      "rel_reduction": 25.0
+    },
+    "high_dmt": {
+      "n": 206,
+      "pct": 41.2,
+      "arr": 0.284,
+      "rel_reduction": 46.3
+    }
+  },
+  "Q_mean_relerr": 0.313,
+  "Q_median_relerr": 0.327,
+  "Q_n_pairs": 26,
+  "Q_table": [
+    {
+      "from_state": 9,
+      "to_state": 8,
+      "Q_true": 0.08,
+      "Q_empirical": 0.07869,
+      "relative_error": 0.0164
+    },
+    {
+      "from_state": 2,
+      "to_state": 4,
+      "Q_true": 0.07,
+      "Q_empirical": 0.06815,
+      "relative_error": 0.0264
+    },
+    {
+      "from_state": 3,
+      "to_state": 4,
+      "Q_true": 0.05,
+      "Q_empirical": 0.04613,
+      "relative_error": 0.0774
+    },
+    {
+      "from_state": 7,
+      "to_state": 8,
+      "Q_true": 0.12,
+      "Q_empirical": 0.13073,
+      "relative_error": 0.0894
+    },
+    {
+      "from_state": 5,
+      "to_state": 6,
+      "Q_true": 0.08,
+      "Q_empirical": 0.07261,
+      "relative_error": 0.0923
+    },
+    {
+      "from_state": 2,
+      "to_state": 0,
+      "Q_true": 0.04,
+      "Q_empirical": 0.03556,
+      "relative_error": 0.1111
+    },
+    {
+      "from_state": 4,
+      "to_state": 7,
+      "Q_true": 0.06,
+      "Q_empirical": 0.04987,
+      "relative_error": 0.1689
+    },
+    {
+      "from_state": 3,
+      "to_state": 5,
+      "Q_true": 0.08,
+      "Q_empirical": 0.06387,
+      "relative_error": 0.2016
+    },
+    {
+      "from_state": 5,
+      "to_state": 7,
+      "Q_true": 0.04,
+      "Q_empirical": 0.04893,
+      "relative_error": 0.2234
+    },
+    {
+      "from_state": 9,
+      "to_state": 10,
+      "Q_true": 0.1,
+      "Q_empirical": 0.12241,
+      "relative_error": 0.2241
+    },
+    {
+      "from_state": 3,
+      "to_state": 1,
+      "Q_true": 0.06,
+      "Q_empirical": 0.04613,
+      "relative_error": 0.2311
+    },
+    {
+      "from_state": 1,
+      "to_state": 2,
+      "Q_true": 0.05,
+      "Q_empirical": 0.03724,
+      "relative_error": 0.2553
+    },
+    {
+      "from_state": 1,
+      "to_state": 3,
+      "Q_true": 0.1,
+      "Q_empirical": 0.06874,
+      "relative_error": 0.3126
+    },
+    {
+      "from_state": 10,
+      "to_state": 11,
+      "Q_true": 0.05,
+      "Q_empirical": 0.03289,
+      "relative_error": 0.3423
+    },
+    {
+      "from_state": 7,
+      "to_state": 6,
+      "Q_true": 0.15,
+      "Q_empirical": 0.09674,
+      "relative_error": 0.3551
+    },
+    {
+      "from_state": 8,
+      "to_state": 9,
+      "Q_true": 0.35,
+      "Q_empirical": 0.22554,
+      "relative_error": 0.3556
+    },
+    {
+      "from_state": 6,
+      "to_state": 8,
+      "Q_true": 0.1,
+      "Q_empirical": 0.13723,
+      "relative_error": 0.3723
+    },
+    {
+      "from_state": 4,
+      "to_state": 5,
+      "Q_true": 0.3,
+      "Q_empirical": 0.18725,
+      "relative_error": 0.3758
+    },
+    {
+      "from_state": 5,
+      "to_state": 4,
+      "Q_true": 0.4,
+      "Q_empirical": 0.24151,
+      "relative_error": 0.3962
+    },
+    {
+      "from_state": 0,
+      "to_state": 2,
+      "Q_true": 0.08,
+      "Q_empirical": 0.04723,
+      "relative_error": 0.4096
+    },
+    {
+      "from_state": 6,
+      "to_state": 7,
+      "Q_true": 0.5,
+      "Q_empirical": 0.24701,
+      "relative_error": 0.506
+    },
+    {
+      "from_state": 2,
+      "to_state": 3,
+      "Q_true": 0.45,
+      "Q_empirical": 0.22124,
+      "relative_error": 0.5084
+    },
+    {
+      "from_state": 0,
+      "to_state": 1,
+      "Q_true": 0.6,
+      "Q_empirical": 0.28217,
+      "relative_error": 0.5297
+    },
+    {
+      "from_state": 3,
+      "to_state": 2,
+      "Q_true": 0.6,
+      "Q_empirical": 0.2555,
+      "relative_error": 0.5742
+    },
+    {
+      "from_state": 1,
+      "to_state": 0,
+      "Q_true": 0.85,
+      "Q_empirical": 0.34444,
+      "relative_error": 0.5948
+    },
+    {
+      "from_state": 8,
+      "to_state": 10,
+      "Q_true": 0.08,
+      "Q_empirical": 0.14302,
+      "relative_error": 0.7878
+    }
+  ],
+  "cox": {
+    "early_bin": {
+      "early_relapse_bin": {
+        "HR": 0.97,
+        "lo": 0.67,
+        "hi": 1.4,
+        "p": 0.8549
+      }
+    },
+    "early_cnt": {
+      "early_relapse_cnt": {
+        "HR": 1.22,
+        "lo": 1.06,
+        "hi": 1.4,
+        "p": 0.0051
+      }
+    },
+    "adjusted": {
+      "age_z": {
+        "HR": 1.24,
+        "lo": 1.05,
+        "hi": 1.46,
+        "p": 0.0097
+      },
+      "male": {
+        "HR": 1.34,
+        "lo": 0.94,
+        "hi": 1.9,
+        "p": 0.1031
+      },
+      "edssbase_z": {
+        "HR": 1.59,
+        "lo": 1.36,
+        "hi": 1.85,
+        "p": 0.0
+      }
+    }
+  }
+}

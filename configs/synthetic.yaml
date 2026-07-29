@@ -1,0 +1,162 @@
+# ============================================================
+# MS Percolation Framework – Synthetic Dataset Configuration
+# ============================================================
+#
+# Generates a high-fidelity synthetic longitudinal MS cohort
+# for testing the percolation pipeline.
+#
+# Calibration targets for aggregate outputs (the sparse Q entries below
+# are hand-specified, NOT fitted to any registry microdata):
+#   Weinshenker et al. (1989) Brain 112(1):133-146   – natural history
+#   Scalfari et al. (2010)    Brain 133(7):1914-1929 – London Ontario, relapses
+#   Confavreux & Vukusic (2006) Brain 129(3):606-616 – Lyon, milestones
+#   Koch et al. (2010)        JNNP 81:1039-1043       – BCMS, SPMS timing
+#   Signori et al. (2023)     JNNP 94:23-30           – Big MS Data, SPMS relapses
+#   Polman et al. (2006)      NEJM 354:899-910        – AFFIRM (natalizumab)
+#   Kappos et al. (2018)      Lancet 391:1263-1273    – EXPAND (siponimod), DMT
+# ============================================================
+
+reproducibility:
+  seed: 42
+
+# ------ Cohort size ------
+cohort:
+  n_patients: 3000
+  # Fraction in each latent progression class
+  class_fractions:
+    stable:     0.30   # slow / non-progressing
+    moderate:   0.45   # typical RRMS → mild SPMS
+    aggressive: 0.25   # fast progression / early SPMS
+
+# ------ State space (12 macrostates) ------
+# State = EDSS band x relapse activity x phase
+states:
+  n_states: 12
+  definitions:
+    # id : [label, edss_low, edss_high, relapse_active, phase]
+    0:  { label: "mild_RRMS_inactive",    edss_low: 0.0, edss_high: 1.5, relapse: false, phase: "RRMS" }
+    1:  { label: "mild_RRMS_active",      edss_low: 0.0, edss_high: 1.5, relapse: true,  phase: "RRMS" }
+    2:  { label: "mod_RRMS_inactive",     edss_low: 2.0, edss_high: 3.5, relapse: false, phase: "RRMS" }
+    3:  { label: "mod_RRMS_active",       edss_low: 2.0, edss_high: 3.5, relapse: true,  phase: "RRMS" }
+    4:  { label: "adv_RRMS_inactive",     edss_low: 4.0, edss_high: 5.5, relapse: false, phase: "RRMS" }
+    5:  { label: "adv_RRMS_active",       edss_low: 4.0, edss_high: 5.5, relapse: true,  phase: "RRMS" }
+    6:  { label: "early_prog_relapsing",  edss_low: 6.0, edss_high: 7.0, relapse: true,  phase: "SPMS" }
+    7:  { label: "early_prog_inactive",   edss_low: 6.0, edss_high: 7.0, relapse: false, phase: "SPMS" }
+    8:  { label: "late_prog_relapsing",   edss_low: 7.5, edss_high: 8.5, relapse: true,  phase: "SPMS" }
+    9:  { label: "late_prog_inactive",    edss_low: 7.5, edss_high: 8.5, relapse: false, phase: "SPMS" }
+    10: { label: "severe_SPMS",           edss_low: 9.0, edss_high: 9.5, relapse: false, phase: "SPMS" }
+    11: { label: "absorbed",              edss_low: 9.5, edss_high: 9.5, relapse: false, phase: "ABS"  }
+
+  # Starting state distribution (mild RRMS, mix active/inactive)
+  onset_state_probs: [0.30, 0.35, 0.15, 0.10, 0.05, 0.05, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+
+# ------ Q matrix (per-year transition intensities, off-diagonal) ------
+# Hand-specified intensities calibrated to reproduce aggregate natural-history
+# Rows = from-state, Cols = to-state (non-zero off-diagonal only listed).
+# Full 12×12 Q is constructed in code from these sparse entries.
+# Units: transitions per year.
+Q_base:
+  # Reversible: mild RRMS cycling (active ↔ inactive)
+  - [0, 1, 0.60]   # mild inactive → mild active (relapse onset)
+  - [1, 0, 0.85]   # mild active → mild inactive (remission)
+  # Progression: mild → moderate
+  - [0, 2, 0.08]   # PIRA: mild inactive → moderate inactive
+  - [1, 2, 0.05]   # mild active → moderate inactive (after relapse residual)
+  - [1, 3, 0.10]   # mild active → moderate active
+  # Moderate RRMS cycling
+  - [2, 3, 0.45]
+  - [3, 2, 0.60]
+  # Remission back to mild (partial recovery)
+  - [2, 0, 0.04]
+  - [3, 1, 0.06]
+  # Progression: moderate → advanced
+  - [2, 4, 0.07]
+  - [3, 4, 0.05]
+  - [3, 5, 0.08]
+  # Advanced RRMS cycling
+  - [4, 5, 0.30]
+  - [5, 4, 0.40]
+  # Progression: advanced RRMS → early progressive
+  - [4, 7, 0.06]   # PIRA to SPMS inactive
+  - [5, 6, 0.08]   # relapsing → relapsing SPMS
+  - [5, 7, 0.04]
+  # SPMS internal transitions
+  - [6, 7, 0.50]   # relapsing SPMS → inactive SPMS
+  - [7, 6, 0.15]   # inactive → relapsing (rare)
+  - [6, 8, 0.10]
+  - [7, 8, 0.12]
+  - [8, 9, 0.35]
+  - [9, 8, 0.08]
+  - [8, 10, 0.08]
+  - [9, 10, 0.10]
+  - [10, 11, 0.05]  # severe → absorbed (near-death)
+
+# ------ Class-specific Q scaling factors ------
+# Each latent class scales the base Q differentially.
+class_Q_factors:
+  stable:
+    progression_scale: 0.35     # much slower worsening
+    relapse_scale:     0.60     # fewer relapses
+    recovery_scale:    1.40     # better recovery
+  moderate:
+    progression_scale: 1.00
+    relapse_scale:     1.00
+    recovery_scale:    1.00
+  aggressive:
+    progression_scale: 2.20     # fast worsening
+    relapse_scale:     1.50     # more relapses
+    recovery_scale:    0.55     # worse recovery
+
+# ------ Age / sex effects (multipliers on progression rates) ------
+# Directions from Ribbons 2015 (sex), Tutuncu 2013 (age); magnitudes calibrated
+age_sex_effects:
+  # For every 10 years above mean onset age (32), multiply progression by:
+  age_progression_multiplier_per_decade: 1.25
+  # Male sex multiplies progression rate by:
+  male_progression_multiplier: 1.15
+  # DMT effects on relapse and progression rates:
+  dmt_effects:
+    none:           { relapse_mult: 1.00, progression_mult: 1.00 }
+    moderate_dmt:   { relapse_mult: 0.65, progression_mult: 0.85 }
+    high_dmt:       { relapse_mult: 0.40, progression_mult: 0.70 }
+
+# ------ Demographics ------
+demographics:
+  onset_age:
+    distribution: "normal"
+    mean: 32.0
+    std:  9.0
+    min:  16.0
+    max:  60.0
+  sex_female_prob: 0.68   # ~2:1 F:M ratio in RRMS
+  dmt_status_probs:
+    none:         0.20
+    moderate_dmt: 0.35
+    high_dmt:     0.45
+
+# ------ Visit schedule ------
+visits:
+  # Mean inter-visit interval (months), varies by disease phase
+  mean_interval_rrms_months:  7.0
+  mean_interval_spms_months:  9.0
+  # Extra visit after relapse (months)
+  post_relapse_visit_months:  1.5
+  # Jitter: uniform noise ± jitter_months around mean interval
+  jitter_months:              2.0
+  # Follow-up
+  max_followup_years:         20.0
+  min_followup_years:          3.0
+  # Censoring: random dropout (loss to follow-up), per-year probability
+  dropout_rate_per_year:       0.03
+
+# ------ EDSS measurement noise ------
+edss_noise:
+  # Standard deviation of Gaussian noise added to true EDSS
+  sigma:  0.30
+  # Rounding: snap to nearest 0.5 steps
+  round_to: 0.5
+
+# ------ Output ------
+output:
+  format: "parquet"   # "csv" or "parquet"
+  compress: true
