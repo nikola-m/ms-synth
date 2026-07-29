@@ -77,16 +77,6 @@ Every reported statistic is deterministic given `--seed 42`.
 See our paper (to be published) for the full validation, including
 the time-to-milestone benchmarking against London Ontario, Rennes, Lyon and BCMS.
 
-## Building the manuscript
-
-```bash
-cd manuscript
-pdflatex ms_synthetic_data_report
-bibtex   ms_synthetic_data_report
-pdflatex ms_synthetic_data_report
-pdflatex ms_synthetic_data_report
-```
-
 ## Provenance note
 
 The transition intensities in `configs/synthetic.yaml` are **hand-specified and
