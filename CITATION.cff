@@ -1,0 +1,40 @@
+cff-version: 1.2.0
+message: "If you use ms-synth, please cite both the software and the article."
+title: "ms-synth: a known-truth generator of synthetic longitudinal multiple sclerosis cohorts"
+type: software
+version: 1.0.0
+date-released: 2026-09-28
+license: MIT
+repository-code: "https://github.com/nikola-m/ms-synth"
+keywords:
+  - multiple sclerosis
+  - synthetic data
+  - multi-state Markov model
+  - continuous-time Markov chain
+  - simulation study
+  - benchmarking
+authors:
+  - family-names: Mirkov
+    given-names: Nikola
+    affiliation: "'Vinča' Institute of Nuclear Sciences - National Institute of the Republic of Serbia, University of Belgrade"
+  - family-names: Živković
+    given-names: Maja
+    affiliation: "'Vinča' Institute of Nuclear Sciences - National Institute of the Republic of Serbia, University of Belgrade"
+  - family-names: Stanković
+    given-names: Aleksandra
+    affiliation: "'Vinča' Institute of Nuclear Sciences - National Institute of the Republic of Serbia, University of Belgrade"
+  - family-names: Djurić
+    given-names: Tamara
+    affiliation: "'Vinča' Institute of Nuclear Sciences - National Institute of the Republic of Serbia, University of Belgrade"
+  - family-names: Jovanović
+    given-names: Ivan
+    affiliation: "'Vinča' Institute of Nuclear Sciences - National Institute of the Republic of Serbia, University of Belgrade"
+  - family-names: Radivojević
+    given-names: Dušan
+    affiliation: "'Vinča' Institute of Nuclear Sciences - National Institute of the Republic of Serbia, University of Belgrade"
+# After the first Zenodo release, add:
+# doi: 10.5281/zenodo.XXXXXXX
+# identifiers:
+#   - type: doi
+#     value: 10.5281/zenodo.XXXXXXX
+#     description: "Archived snapshot of v1.0.0"

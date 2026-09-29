@@ -1,8 +1,0 @@
-numpy>=1.24
-scipy>=1.10
-pandas>=2.0
-pyyaml>=6.0
-lifelines>=0.27      # Kaplan-Meier and Cox PH in scripts/analyze_manuscript_stats.py
-networkx>=3.0        # graph_utils / percolation
-matplotlib>=3.7      # visualization
-pytest>=7.0          # tests
