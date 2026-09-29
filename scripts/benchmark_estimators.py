@@ -8,8 +8,13 @@ Aims
 Data-generating mechanisms
     A  cohort size N in {250, 500, 1000, 2000, 4000} x {homogeneous,
        heterogeneous} population, default visit schedule;
-    B  homogeneous population, N = 1000, visit intervals scaled by
-       {0.5, 1, 2} (mean 3.5/4.5, 7/9, 14/18 months in RRMS/SPMS).
+    C  homogeneous population, N in {250, ..., 4000}, NON-informative
+       visits (post-relapse extra visits switched off);
+    B  as C with N = 1000 and visit intervals scaled by {0.5, 1, 2}
+       (mean 3.5/4.5, 7/9, 14/18 months in RRMS/SPMS).
+    The default schedule adds a visit 1.5 months after each relapse onset,
+    i.e. observation times depend on the latent path (outcome-dependent,
+    as in clinical registries); C and B remove this dependence.
     "Homogeneous" switches off latent-class, age, sex and DMT scaling so
     that every patient's generator equals Q_base exactly.
 Estimands
@@ -47,8 +52,10 @@ OUT = ROOT / "results" / "benchmark_estimators.csv"
 BASE_SEED = 1000
 
 
-def make_config(homogeneous: bool, interval_mult: float) -> dict:
+def make_config(homogeneous: bool, interval_mult: float, informative: bool = True) -> dict:
     cfg = copy.deepcopy(load_config(str(CONFIG)))
+    if not informative:
+        cfg["visits"]["post_relapse_visit_months"] = 0.0
     if homogeneous:
         cfg["cohort"]["class_fractions"] = {"stable": 0.0, "moderate": 1.0, "aggressive": 0.0}
         ase = cfg["age_sex_effects"]
@@ -61,9 +68,22 @@ def make_config(homogeneous: bool, interval_mult: float) -> dict:
     return cfg
 
 
+PARTS = ROOT / "results" / "bench_parts"
+
+
+def part_path(task: dict) -> Path:
+    return PARTS / (f"{task['scenario']}_{'hom' if task['homogeneous'] else 'het'}_"
+                    f"n{task['n']}_v{task['interval_mult']}_r{task['rep']}"
+                    f"{'' if task.get('informative', True) else '_noninf'}.csv")
+
+
 def run_task(task: dict) -> list[dict]:
+    """Run one replicate; checkpointed to results/bench_parts/ (resumable)."""
+    pp = part_path(task)
+    if pp.exists():
+        return pd.read_csv(pp).to_dict("records")
     logging.disable(logging.CRITICAL)
-    cfg = make_config(task["homogeneous"], task["interval_mult"])
+    cfg = make_config(task["homogeneous"], task["interval_mult"], task.get("informative", True))
     Q = build_Q_from_config(cfg)
     nz = [(i, j) for i in range(12) for j in range(12) if i != j and Q[i, j] > 0]
     t0 = time.time()
@@ -82,11 +102,14 @@ def run_task(task: dict) -> list[dict]:
                 "scenario": task["scenario"], "population":
                 "homogeneous" if task["homogeneous"] else "heterogeneous",
                 "n_patients": task["n"], "interval_mult": task["interval_mult"],
+                "visits": "informative" if task.get("informative", True) else "non-informative",
                 "rep": task["rep"], "seed": task["seed"], "estimator": name,
                 "from_state": i, "to_state": j, "q_true": float(Q[i, j]),
                 "q_hat": float(Qh[i, j]), "n_visits": len(df),
                 "fit_seconds": round(times[name], 3), "gen_seconds": round(t_gen, 3),
             })
+    PARTS.mkdir(parents=True, exist_ok=True)
+    pd.DataFrame(rows).to_csv(pp, index=False)
     return rows
 
 
@@ -99,11 +122,31 @@ def build_tasks(reps: int, quick: bool) -> list[dict]:
             for n in sizes:
                 tasks.append(dict(scenario="A_size", homogeneous=hom, n=n,
                                   interval_mult=1.0, rep=r, seed=seed))
+        for n in sizes:
+            tasks.append(dict(scenario="C_noninf", homogeneous=True, n=n,
+                              interval_mult=1.0, rep=r, seed=seed, informative=False))
         for m in (0.5, 2.0):
             tasks.append(dict(scenario="B_visits", homogeneous=True, n=1000,
-                              interval_mult=m, rep=r, seed=seed))
+                              interval_mult=m, rep=r, seed=seed, informative=False))
     # biggest first for better load balancing
     return sorted(tasks, key=lambda t: -t["n"])
+
+
+def summarize(raw: pd.DataFrame) -> pd.DataFrame:
+    """Per replicate: mean relative bias and mean |relative error| over the
+    26 intensities; then mean and Monte Carlo SE (sd/sqrt(R)) over replicates."""
+    r = raw.assign(rel=(raw.q_hat - raw.q_true) / raw.q_true)
+    keys = ["scenario", "population", "visits", "n_patients", "interval_mult", "estimator"]
+    per_rep = r.groupby(keys + ["rep"]).agg(
+        bias=("rel", "mean"), abs_err=("rel", lambda x: x.abs().mean()),
+        n_visits=("n_visits", "first")).reset_index()
+    g = per_rep.groupby(keys)
+    out = g.agg(bias_mean=("bias", "mean"), bias_sd=("bias", "std"),
+                abs_err_mean=("abs_err", "mean"), abs_err_sd=("abs_err", "std"),
+                reps=("rep", "nunique"), visits_mean=("n_visits", "mean")).reset_index()
+    out["bias_mcse"] = out.bias_sd / np.sqrt(out.reps)
+    out["abs_err_mcse"] = out.abs_err_sd / np.sqrt(out.reps)
+    return out.drop(columns=["bias_sd", "abs_err_sd"]).round(4)
 
 
 def main() -> None:
@@ -113,7 +156,12 @@ def main() -> None:
     ap.add_argument("--jobs", type=int, default=1)
     ap.add_argument("--quick", action="store_true", help="small sizes for CI")
     ap.add_argument("--out", default=str(OUT))
+    ap.add_argument("--summarize-only", action="store_true",
+                    help="recompute results/benchmark_summary.csv from an existing CSV")
     a = ap.parse_args()
+    if a.summarize_only:
+        summarize(pd.read_csv(a.out)).to_csv(Path(a.out).with_name("benchmark_summary.csv"), index=False)
+        print("wrote", Path(a.out).with_name("benchmark_summary.csv")); return
     tasks = build_tasks(a.reps, a.quick)
     rows: list[dict] = []
     t0 = time.time()
@@ -128,12 +176,13 @@ def main() -> None:
             print(f"[{k}/{len(tasks)}] {t['scenario']} n={t['n']} rep={t['rep']} "
                   f"({time.time()-t0:.0f}s)", flush=True)
     out = pd.DataFrame(rows).sort_values(
-        ["scenario", "population", "n_patients", "interval_mult", "rep",
+        ["scenario", "population", "visits", "n_patients", "interval_mult", "rep",
          "estimator", "from_state", "to_state"]).reset_index(drop=True)
     Path(a.out).parent.mkdir(parents=True, exist_ok=True)
     out.drop(columns=["fit_seconds", "gen_seconds"]).to_csv(a.out, index=False)
-    out.groupby(["estimator"])[["fit_seconds"]].describe().to_csv(
+    out.groupby(["estimator", "n_patients"])["fit_seconds"].median().to_csv(
         Path(a.out).with_name("benchmark_timings.csv"))
+    summarize(out).to_csv(Path(a.out).with_name("benchmark_summary.csv"), index=False)
     print(f"wrote {a.out} ({len(out)} rows) in {time.time()-t0:.0f}s")
 
 

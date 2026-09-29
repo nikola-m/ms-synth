@@ -33,7 +33,8 @@ def homogeneous(cfg):
     c["age_sex_effects"]["age_progression_multiplier_per_decade"] = 1.0
     c["age_sex_effects"]["male_progression_multiplier"] = 1.0
     c["demographics"]["dmt_status_probs"] = {"none": 1.0, "moderate_dmt": 0.0, "high_dmt": 0.0}
-    df, lat = generate_synthetic_ms_dataset(cfg=c, n_patients=400, seed=7, return_latent=True)
+    c["visits"]["post_relapse_visit_months"] = 0.0     # non-informative observation
+    df, lat = generate_synthetic_ms_dataset(cfg=c, n_patients=600, seed=7, return_latent=True)
     return c, df, lat
 
 
@@ -83,15 +84,30 @@ class TestEstimators:
                for i in range(12) for j in range(12) if i != j and Q[i, j] > 0]
         assert np.median(rel) < 0.2
 
-    def test_panel_mle_less_biased_than_crude(self, homogeneous):
+    def test_panel_mle_unbiased_under_noninformative_visits(self, homogeneous):
         c, df, _ = homogeneous
         Q = build_Q_from_config(c)
         nz = [(i, j) for i in range(12) for j in range(12) if i != j and Q[i, j] > 0]
         bias = lambda Qh: np.mean([(Qh[i, j] - Q[i, j]) / Q[i, j] for i, j in nz])
         b_crude = bias(estimate_Q_crude(df, 12))
         b_panel = bias(estimate_Q_panel(df, 12, allowed=nz))
-        assert b_crude < -0.05                 # visit-level counting under-estimates
+        assert b_crude < -0.10                 # visit-level counting under-estimates
+        assert abs(b_panel) < 0.05             # consistent panel likelihood
         assert abs(b_panel) < abs(b_crude)
+
+    def test_disabling_post_relapse_visits_nests_first_schedule(self, cfg):
+        # The extra visit uses no random numbers, but fewer visits mean fewer
+        # EDSS-noise draws, so the shared stream diverges for later patients.
+        # For the first patient the regular schedule is therefore identical.
+        c = copy.deepcopy(cfg)
+        c["visits"]["post_relapse_visit_months"] = 0.0
+        a = generate_synthetic_ms_dataset(cfg=cfg, n_patients=20, seed=9)
+        b = generate_synthetic_ms_dataset(cfg=c, n_patients=20, seed=9)
+        p0 = a["patient_id"].iloc[0]
+        ta = set(a.loc[a.patient_id == p0, "disease_duration_yr"].round(6))
+        tb = set(b.loc[b.patient_id == p0, "disease_duration_yr"].round(6))
+        assert tb <= ta
+        assert len(b) <= len(a)
 
 
 class TestSummaries:

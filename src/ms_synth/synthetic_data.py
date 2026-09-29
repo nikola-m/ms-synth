@@ -521,7 +521,9 @@ def _generate_visit_schedule(
             break
 
         # Check if a relapse event happened in (t, t_next) → add extra visit
-        for ev_t, ev_s in events:
+        # (outcome-dependent: the extra visit depends on the latent jump
+        # time; set post_relapse_visit_months <= 0 to disable)
+        for ev_t, ev_s in (events if post_relapse_interval > 0 else ()):
             if t < ev_t < t_next and state_defs[ev_s]["relapse"]:
                 extra = ev_t + post_relapse_interval / 12.0
                 if extra < follow_up and extra not in visits:
