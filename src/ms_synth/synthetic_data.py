@@ -1,8 +1,7 @@
 """
 synthetic_data.py
 =================
-High-fidelity synthetic longitudinal MS cohort generator for testing the
-ms_percolation_framework pipeline.
+Known-truth synthetic longitudinal MS cohort generator (ms-synth).
 
 Architectural overview
 ----------------------
@@ -318,8 +317,14 @@ def simulate_patient_trajectory(
     jitter_months: float,
     edss_noise_sigma: float,
     edss_round_to: float = 0.5,
+    latent_sink: list | None = None,
 ) -> list[dict]:
     """Simulate a single patient's MS trajectory using the Gillespie algorithm.
+
+    If ``latent_sink`` is a list, a dict ``{"events": [(t, state), ...],
+    "follow_up": float}`` describing the exact latent path is appended to
+    it. This consumes no random numbers, so enabling it never changes the
+    simulated cohort.
 
     The Gillespie algorithm generates *exact* realisations of the CTMC:
     at each state the sojourn time is exponentially distributed with rate
@@ -405,6 +410,9 @@ def simulate_patient_trajectory(
 
     if not visit_times:
         visit_times = [0.0]
+
+    if latent_sink is not None:
+        latent_sink.append({"events": list(events), "follow_up": float(follow_up)})
 
     # ── 3. Build visit records ────────────────────────────────────────────
     records = []
@@ -639,8 +647,14 @@ def generate_synthetic_ms_dataset(
     cfg_path: str | Path | None = None,
     n_patients: int | None = None,
     seed: int | None = None,
-) -> pd.DataFrame:
+    return_latent: bool = False,
+) -> pd.DataFrame | tuple[pd.DataFrame, dict]:
     """Generate a synthetic longitudinal MS dataset.
+
+    With ``return_latent=True`` the function returns ``(df, latent)`` where
+    ``latent[patient_id] = {"events", "follow_up", "Q_patient"}`` holds the
+    exact continuous-time path and the patient-specific generator (the
+    known truth). The observed ``df`` is identical in both modes.
 
     Combines all sub-components (Q construction, per-patient scaling,
     Gillespie simulation, visit scheduling, EDSS noise) into a single
@@ -711,6 +725,7 @@ def generate_synthetic_ms_dataset(
 
     # ── Per-patient simulation ─────────────────────────────────────────────
     all_records: list[dict] = []
+    latent: dict = {}
     mean_onset_age = float(cfg.get("demographics", {}).get("onset_age", {}).get("mean", 32.0))
 
     # Random calendar onset dates spanning a ~20-year accrual window
@@ -736,6 +751,7 @@ def generate_synthetic_ms_dataset(
         init_state = int(rng.choice(n_states, p=onset_probs))
 
         # Gillespie trajectory + visits
+        _sink: list | None = [] if return_latent else None
         visit_records = simulate_patient_trajectory(
             Q_pat=Q_pat,
             state_defs=state_defs,
@@ -750,7 +766,10 @@ def generate_synthetic_ms_dataset(
             jitter_months=jitter,
             edss_noise_sigma=edss_sigma,
             edss_round_to=edss_round,
+            latent_sink=_sink,
         )
+        if return_latent:
+            latent[pid] = {**_sink[0], "Q_patient": Q_pat.copy()}
 
         # Calendar onset date (random within accrual window)
         onset_day_offset = int(rng.integers(0, accrual_days))
@@ -799,6 +818,8 @@ def generate_synthetic_ms_dataset(
     # ── Validation logging ─────────────────────────────────────────────────
     _log_validation_stats(df)
 
+    if return_latent:
+        return df, latent
     return df
 
 
@@ -814,8 +835,9 @@ def _log_validation_stats(df: pd.DataFrame) -> None:
     n_pat = df["patient_id"].nunique()
     visits_per_pat = df.groupby("patient_id").size()
     spms_pats = df[df["phase"] == "SPMS"]["patient_id"].nunique()
-    relapse_rate_yr = df.groupby("patient_id").apply(
-        lambda g: g["relapse"].sum() / max(g["disease_duration_yr"].max(), 1e-6)
+    _g = df.groupby("patient_id")
+    relapse_rate_yr = (
+        _g["relapse"].sum() / _g["disease_duration_yr"].max().clip(lower=1e-6)
     ).mean()
     median_fu = df.groupby("patient_id")["disease_duration_yr"].max().median()
     class_dist = df.drop_duplicates("patient_id")["latent_class"].value_counts().to_dict()

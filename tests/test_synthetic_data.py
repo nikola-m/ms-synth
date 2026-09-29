@@ -21,9 +21,8 @@ import numpy as np
 import pandas as pd
 import pytest
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from src.synthetic_data import (
+from ms_synth.synthetic_data import (
     build_Q_from_config,
     scale_Q_for_patient,
     simulate_patient_trajectory,

@@ -1,7 +1,7 @@
 """
 visualization.py
 ================
-Publication-quality figures for the MS percolation framework.
+Figures for the optional percolation analysis of G(Q).
 
 All plotting functions accept a ``save_path`` parameter and an ``ax``
 parameter (if None, a new figure is created).

@@ -1,0 +1,67 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ms-synth"
+version = "1.0.0"
+description = "Known-truth generator of synthetic longitudinal multiple sclerosis cohorts (continuous-time multi-state Markov model)"
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.10"
+authors = [
+  { name = "Nikola Mirkov" },
+  { name = "Maja Živković" },
+  { name = "Aleksandra Stanković" },
+  { name = "Tamara Djurić" },
+  { name = "Ivan Jovanović" },
+  { name = "Dušan Radivojević" },
+]
+keywords = [
+  "multiple sclerosis", "synthetic data", "multi-state Markov model",
+  "continuous-time Markov chain", "simulation", "benchmarking", "EDSS",
+]
+classifiers = [
+  "Development Status :: 5 - Production/Stable",
+  "Intended Audience :: Science/Research",
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Topic :: Scientific/Engineering :: Bio-Informatics",
+  "Topic :: Scientific/Engineering :: Medical Science Apps.",
+]
+# Core generator: minimal numerical stack only
+dependencies = [
+  "numpy>=1.24",
+  "scipy>=1.10",
+  "pandas>=2.0",
+  "pyyaml>=6.0",
+]
+
+[project.optional-dependencies]
+# Statistics, figures and estimator benchmark used in the manuscript
+analysis = ["lifelines>=0.27", "matplotlib>=3.7"]
+# Optional percolation analysis of the state-transition graph G(Q)
+percolation = ["networkx>=3.0", "matplotlib>=3.7"]
+parquet = ["pyarrow>=12"]
+dev = ["pytest>=7.0", "ms-synth[analysis,percolation]"]
+all = ["ms-synth[analysis,percolation]"]
+
+[project.urls]
+Homepage = "https://github.com/nikola-m/ms-synth"
+Repository = "https://github.com/nikola-m/ms-synth"
+Issues = "https://github.com/nikola-m/ms-synth/issues"
+
+[project.scripts]
+ms-synth-generate = "ms_synth.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+filterwarnings = ["ignore::DeprecationWarning"]

@@ -158,5 +158,5 @@ edss_noise:
 
 # ------ Output ------
 output:
-  format: "parquet"   # "csv" or "parquet"
+  format: "csv"       # "csv" (default) or "parquet" (needs pyarrow)
   compress: true

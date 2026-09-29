@@ -31,28 +31,27 @@ import sys
 from pathlib import Path
 
 # Make src/ importable when running from project root
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 import numpy as np
 import pandas as pd
 
-from src.utils import setup_logging, get_logger, set_seed, load_config, ensure_dir, save_dict_json
-from src.data import generate_synthetic_data, validate_data, load_data
-from src.msm_fit import fit_msm, Q_to_transition_matrix
-from src.graph_utils import build_graph, build_theta_grid, normalise_weights
-from src.percolation import (
+from ms_synth.utils import setup_logging, get_logger, set_seed, load_config, ensure_dir, save_dict_json
+from ms_synth.data import generate_synthetic_data, validate_data, load_data
+from ms_synth.msm_fit import fit_msm, Q_to_transition_matrix
+from ms_synth.graph_utils import build_graph, build_theta_grid, normalise_weights
+from ms_synth.percolation import (
     threshold_sweep,
     compute_patient_delta_series,
     compute_summary_statistics,
     percolation_vulnerability_index,
 )
-from src.augmentation import (
+from ms_synth.augmentation import (
     augment_Q,
     compare_models,
     cluster_trajectories_by_percolation,
     fit_augmented_msm,
 )
-from src.visualization import (
+from ms_synth.visualization import (
     plot_percolation_curve,
     plot_component_sizes,
     plot_susceptibility,

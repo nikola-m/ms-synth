@@ -39,7 +39,12 @@ import numpy as np
 from scipy.linalg import expm
 from scipy.optimize import minimize
 
-from .data import extract_transitions
+from .data import (
+    extract_transitions,
+    DEFAULT_PATIENT_COL,
+    DEFAULT_TIME_COL,
+    DEFAULT_STATE_COL,
+)
 from .utils import get_logger
 
 logger = get_logger(__name__)
@@ -85,7 +90,10 @@ def fit_msm(
 
     if method == "mle":
         Q = _mle_estimate(count_matrix, total_time, regularization, allowed)
-    elif method == "em":
+    elif method in ("em", "panel"):
+        # "em" is kept as a backwards-compatible alias: the estimator is a
+        # direct numerical MLE of the panel likelihood (Kalbfleisch & Lawless
+        # 1985), not an EM algorithm.
         Q = _em_estimate(df, n_states, regularization, allowed)
     else:
         raise ValueError(f"Unknown MSM fitting method: '{method}'")
@@ -221,23 +229,28 @@ def _em_estimate(
         np.fill_diagonal(Q_, -Q_.sum(axis=1))
         return Q_
 
+    a_arr = np.array([t[0] for t in transitions], dtype=int)
+    b_arr = np.array([t[1] for t in transitions], dtype=int)
+    dt_arr = np.array([t[2] for t in transitions], dtype=float)
+
     def _neg_loglik(log_lams: np.ndarray) -> float:
         Q_ = _params_to_Q(log_lams)
-        nll = 0.0
-        for (s_from, s_to, dt) in transitions:
-            P = expm(Q_ * dt)
-            prob = np.clip(P[s_from, s_to], 1e-15, None)
-            nll -= np.log(prob)
+        probs = panel_transition_probs(Q_, a_arr, b_arr, dt_arr)
+        nll = -float(np.sum(np.log(np.clip(probs, 1e-15, None))))
         # L2 regularisation
         nll += regularization * float(np.sum(log_lams ** 2))
         return nll
 
-    x0 = np.full(n_params, np.log(0.1))
+    # Initialise at the crude count/time estimate (faster convergence)
+    cnt = np.zeros((n, n)); tot = np.zeros(n)
+    np.add.at(cnt, (a_arr, b_arr), 1.0); np.add.at(tot, a_arr, dt_arr)
+    x0 = np.array([np.log(max(cnt[i, j] / max(tot[i], 1e-9), 1e-3))
+                   for (i, j) in idx_pairs])
     result = minimize(
         _neg_loglik,
         x0,
         method="L-BFGS-B",
-        options={"maxiter": max_iter, "ftol": tol},
+        options={"maxiter": max_iter, "ftol": tol * 1e-3},
     )
     if not result.success:
         logger.warning("EM optimiser did not fully converge: %s", result.message)
@@ -245,6 +258,103 @@ def _em_estimate(
     Q = _params_to_Q(result.x)
     return Q
 
+
+
+# ---------------------------------------------------------------------------
+# Fast panel likelihood and known-truth estimators
+# ---------------------------------------------------------------------------
+
+def panel_transition_probs(
+    Q: np.ndarray, a: np.ndarray, b: np.ndarray, dt: np.ndarray
+) -> np.ndarray:
+    """Vectorised P(dt)[a, b] = expm(Q*dt)[a, b] for many observation pairs.
+
+    Uses the eigendecomposition Q = V diag(w) V^-1, so that
+    P(dt)[a, b] = sum_k V[a, k] exp(w_k dt) V^-1[k, b]; falls back to a
+    batched matrix exponential when V is ill-conditioned (near-defective Q).
+    """
+    a = np.asarray(a, dtype=int); b = np.asarray(b, dtype=int)
+    dt = np.asarray(dt, dtype=float)
+    try:
+        w, V = np.linalg.eig(Q)
+        if np.linalg.cond(V) > 1e8:
+            raise np.linalg.LinAlgError("ill-conditioned eigenbasis")
+        Vinv = np.linalg.inv(V)
+        E = np.exp(np.outer(dt, w))                      # (m, n)
+        probs = np.einsum("mk,mk,km->m", V[a, :], E, Vinv[:, b]).real
+    except np.linalg.LinAlgError:
+        P = expm(Q[None, :, :] * dt[:, None, None])      # (m, n, n)
+        probs = P[np.arange(len(dt)), a, b]
+    return probs
+
+
+def estimate_Q_crude(
+    df, n_states: int, time_col: str = "disease_duration_yr",
+    state_col: str = "state", patient_col: str = "patient_id",
+) -> np.ndarray:
+    """Crude estimator: lambda_ij = N_ij / T_i from consecutive visits.
+
+    This is the MLE only for *continuously observed* paths. Applied to
+    panel data it ignores unobserved intermediate jumps and is biased
+    towards zero for fast, reversible transitions.
+    """
+    n = n_states
+    cnt = np.zeros((n, n)); tot = np.zeros(n)
+    for _, g in df.sort_values([patient_col, time_col]).groupby(patient_col, sort=False):
+        s_ = g[state_col].to_numpy(dtype=int); t_ = g[time_col].to_numpy(dtype=float)
+        for k in range(len(s_) - 1):
+            cnt[s_[k], s_[k + 1]] += 1.0
+            tot[s_[k]] += max(t_[k + 1] - t_[k], 1e-9)
+    Q = np.zeros((n, n))
+    for i in range(n):
+        if tot[i] > 0:
+            Q[i] = cnt[i] / tot[i]
+    np.fill_diagonal(Q, 0.0); np.fill_diagonal(Q, -Q.sum(axis=1))
+    return Q
+
+
+def estimate_Q_panel(
+    df, n_states: int, allowed: list | None = None,
+    time_col: str = "disease_duration_yr", state_col: str = "state",
+    patient_col: str = "patient_id", regularization: float = 0.0,
+    max_iter: int = 500,
+) -> np.ndarray:
+    """Panel-data MLE (Kalbfleisch & Lawless 1985) of Q.
+
+    Maximises sum log expm(Q dt)[s_k, s_{k+1}] over consecutive visits,
+    optionally restricted to an ``allowed`` list of (i, j) pairs.
+    """
+    tmp = df.rename(columns={patient_col: DEFAULT_PATIENT_COL,
+                             time_col: DEFAULT_TIME_COL,
+                             state_col: DEFAULT_STATE_COL})
+    return _em_estimate(tmp, n_states, regularization, allowed, max_iter=max_iter)
+
+
+def estimate_Q_from_paths(latent: dict, n_states: int) -> np.ndarray:
+    """Oracle estimator from exactly observed latent paths.
+
+    ``latent`` maps patient id -> {"events": [(t, s), ...], "follow_up": T},
+    as returned by ``generate_synthetic_ms_dataset(..., return_latent=True)``.
+    With complete paths N_ij / T_i is the exact MLE, so its error reflects
+    only finite-sample variability and between-patient heterogeneity.
+    """
+    n = n_states
+    cnt = np.zeros((n, n)); tot = np.zeros(n)
+    for rec in latent.values():
+        ev = rec["events"]; T = float(rec["follow_up"])
+        for k, (t_k, s_k) in enumerate(ev):
+            if t_k >= T:
+                break
+            t_next = ev[k + 1][0] if k + 1 < len(ev) else np.inf
+            tot[s_k] += min(t_next, T) - t_k
+            if t_next <= T:
+                cnt[s_k, ev[k + 1][1]] += 1.0
+    Q = np.zeros((n, n))
+    for i in range(n):
+        if tot[i] > 0:
+            Q[i] = cnt[i] / tot[i]
+    np.fill_diagonal(Q, 0.0); np.fill_diagonal(Q, -Q.sum(axis=1))
+    return Q
 
 # ---------------------------------------------------------------------------
 # Utilities
