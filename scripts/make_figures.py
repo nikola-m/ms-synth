@@ -230,8 +230,9 @@ def fig3(df, pat):
     vals = [rr, sp, arr["none"], arr["moderate_dmt"], arr["high_dmt"]]
     cols = [C["blue"], C["red"], C["grey"], C["orange"], C["purple"]]
     dd.bar(range(5), vals, color=cols, width=0.65)
-    dd.errorbar([1.42], [0.32], yerr=[[0.09], [0.09]], fmt="none", ecolor="k", capsize=3, lw=0.9)
-    dd.text(1.42, 0.425, "published\n0.23\u20130.41", fontsize=5.8, ha="center")
+    # Big MS Data SPMS cohort: mean ARR 0.23; trajectory-class means 0.19-0.27 (Signori 2023)
+    dd.errorbar([1.42], [0.23], yerr=[[0.04], [0.04]], fmt="_", color="k", ms=9, capsize=3, lw=0.9)
+    dd.text(1.42, 0.30, "Big MS\nData 0.23", fontsize=5.8, ha="center")
     for k, v in enumerate(vals):
         dd.text(k, v + 0.012, f"{v:.2f}", ha="center", fontsize=6.5)
     for k, key in ((3, "moderate_dmt"), (4, "high_dmt")):

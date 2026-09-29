@@ -88,6 +88,7 @@ configs/synthetic.yaml   12-state generator, covariate effects, visit process
 scripts/             analysis, benchmark, figures, verification, percolation pipeline
 reference/           expected outputs and checksums
 tests/               68 unit tests
+manuscript/          article source (LaTeX), bibliography, Additional file 1; `make` builds it
 Validation.md        traceable natural-history parameter compilation
 ```
 
